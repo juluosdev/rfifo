@@ -3,7 +3,9 @@ Create a ring fifo for accessing chunk buffer directly
 so that don't need memory copy.
 
 ## How to build
+```
 make -C src
+```
 
 ## run tests
 ```
