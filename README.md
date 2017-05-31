@@ -7,6 +7,11 @@ so that don't need memory copy.
 make -C src
 ```
 
+## How to use
+You will get static library (librfifo.a) after build successfully.
+And then include rfifo.h by your C file and link with static file directly.
+You can reference the sample code: test_rfifo.c
+
 ## run tests
 ```
 make -C src tests
