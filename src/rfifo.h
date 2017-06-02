@@ -26,7 +26,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
  *    +--------+-----+------------+
  */
 
-#define CHUNK_DATA_SIZE 512
+#define CHUNK_DATA_SIZE 1024
 /* definitions of chunk state */
 #define CHUNK_STATE_EMPTY    0  /* default unsed */
 #define CHUNK_STATE_ACQUIRED 1  /* chunk state wait to receive data via network */
@@ -37,7 +37,7 @@ typedef struct _rfifo_chunk {
     unsigned char state;
     unsigned long seq;
     unsigned short size;
-    unsigned char data[CHUNK_DATA_SIZE];
+    char data[CHUNK_DATA_SIZE];
 } rfifo_chunk;
 
 typedef struct _rfifo {
@@ -50,7 +50,7 @@ typedef struct _rfifo {
 
 int rfifo_init(rfifo *f, unsigned short num);
  
-unsigned char *rfifo_acquire_chunk_buf(rfifo *f);
+char *rfifo_acquire_chunk_buf(rfifo *f);
 
 int rfifo_filled_chunk_buf(rfifo *f,
         unsigned long seq,
@@ -59,7 +59,7 @@ int rfifo_filled_chunk_buf(rfifo *f,
 int rfifo_set_chunk_state(rfifo *f, unsigned short index, unsigned char state);
 void rfifo_dump_chunk(rfifo *f, unsigned short index);
 
-const unsigned char * rfifo_play_chunk(rfifo *f);
+char *rfifo_play_chunk(rfifo *f);
 int rfifo_played_chunk(rfifo *f);
 
 #endif /* RFIFO_H */

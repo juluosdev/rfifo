@@ -12,34 +12,41 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <stdlib.h>
 #include <pthread.h>
 #include "rfifo.h"
+#include <string.h> /* memset */
 
-pthread_mutex_t rmutex     = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t rmutex  = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t  rcond   = PTHREAD_COND_INITIALIZER;
 
 int rfifo_init(rfifo *f, unsigned short num)
 {
+    size_t size = 0;
     f->num = num;
     f->tail = 0;
     f->head = 0;
-    f->chunks = (rfifo_chunk *) malloc(sizeof(rfifo_chunk) * num);
+    size = sizeof(rfifo_chunk) * num;
+    f->chunks = (rfifo_chunk *) malloc(size);
     if (!f->chunks)
         return -1;
 
+    memset(f->chunks, 0, size);
     return 0;
 }
 
 /*
  * used point to receive data directly, avoid to memory.
  */
-unsigned char *rfifo_acquire_chunk_buf(rfifo *f)
+char *rfifo_acquire_chunk_buf(rfifo *f)
 {
     rfifo_chunk *p = NULL;
 
     pthread_mutex_lock(&rmutex);
     p = &f->chunks[f->tail];
-    while (f->count == f->num || p->state != CHUNK_STATE_EMPTY)
+    if (p->state == CHUNK_STATE_ACQUIRED) {
+        // pass
+    } else if (p->state != CHUNK_STATE_EMPTY)
     {
-        pthread_cond_wait(&rcond, &rmutex);
+        pthread_mutex_unlock(&rmutex);
+        return NULL;
     }
 
     p->state = CHUNK_STATE_ACQUIRED;
@@ -62,21 +69,22 @@ int rfifo_filled_chunk_buf(rfifo *f,
     if (f->tail == f->num) {
         f->tail = 0;
     }
-    p->state = CHUNK_STATE_READY;
     f->count++;
+    p->state = CHUNK_STATE_READY;
+    pthread_cond_signal(&rcond);
     pthread_mutex_unlock(&rmutex);
     return 0;
 }
 
-const unsigned char *rfifo_play_chunk(rfifo *f)
+char *rfifo_play_chunk(rfifo *f)
 {
-    unsigned char *r = NULL;
+    char *r = NULL;
     rfifo_chunk *p = NULL;
 
     pthread_mutex_lock(&rmutex);
     
-//    while (f->count == 0)
-//        pthread_cond_wait(&rcond, &rmutex);
+    while (f->count == 0)
+        pthread_cond_wait(&rcond, &rmutex);
 
     p = &f->chunks[f->head];
     if (p->state == CHUNK_STATE_READY) {
@@ -99,7 +107,6 @@ int rfifo_played_chunk(rfifo *f)
         f->head = 0;
     }
     f->count--;
-    pthread_cond_signal(&rcond);
     pthread_mutex_unlock(&rmutex);
     return 0;
 }

@@ -17,13 +17,18 @@ static rfifo fifo;
 
 static unsigned short frame_no = 0;
 static unsigned int cid = 0;
+#define RFIFO_FULL 1
+
 int new_chunk_to_rfifo(rfifo *f ,unsigned int i)
 {
-    unsigned char *pdata = NULL;
+    char *pdata = NULL;
     int data_size = 0;
     int rc = 0;
 
     pdata = rfifo_acquire_chunk_buf(f);
+    if (!pdata)
+        return RFIFO_FULL;
+
     cid %= MAX_CHUNK_NUM;
     data_size = snprintf((char *)pdata, CHUNK_DATA_SIZE-1, "c%u data%u", cid, i);
     cid++;
@@ -47,7 +52,7 @@ void *thread_chunk_consumer(void *parg)
         int rc = 0;
         runloop++;
     
-        const unsigned char *r = rfifo_play_chunk(&fifo);
+        char *r = rfifo_play_chunk(&fifo);
         if (r == NULL) {
 //#define HAVE_DEBUG_NO_NEW_CHUNK 1
 #ifdef HAVE_DEBUG_NO_NEW_CHUNK
@@ -75,6 +80,7 @@ void *thread_chunk_producer(void *parg)
     JULOG("thread producer started %lu\n", tid);
     while (1)
     {
+        int rc = 0;
         if (i % 50 == 0) {
             delay = 15000;
         } else {
@@ -83,7 +89,11 @@ void *thread_chunk_producer(void *parg)
             else
                 delay = 33000;
         }
-        new_chunk_to_rfifo(&fifo, ++i);
+        rc = new_chunk_to_rfifo(&fifo, ++i);
+        while (rc == RFIFO_FULL) {
+            usleep(10);
+            continue;
+        }
         usleep(delay);
     }
 

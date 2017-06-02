@@ -19,5 +19,8 @@ $(LIBA): $(OBJS)
 tests: $(TARGET_BIN)
 	./$^
 
+install:
+	@echo "please link static library $(LIBA) directly."
+
 clean:
-	rm -f *.o $(TARGET_BIN)
+	rm -f *.o $(TARGET_BIN) $(LIBA)
